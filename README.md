@@ -2,48 +2,102 @@
 
 # SAV Trip Plan Validator: AnyLogic Simulation
 
-This repository contains a standalone AnyLogic agent-based simulation model (`ridesharing_v3`). 
+This repository contains a standalone AnyLogic agent-based simulation model (`ridesharing_v3`).
 
 **Note:** This project is part of a two-repository system. The Deep Reinforcement Learning (DRL) model that actually *generates* the shared trip plans lives in a separate repository. **This repository's sole purpose is validation.** It takes the execution plans produced by the DRL model, animates them on a map, and gathers objective statistics to ensure the generated plans are physically viable, unbiased, and mathematically sound.
 
 ---
 
 ## 📑 Table of Contents
-- [Project Overview](#project-overview)
-- [Key Simulation Assumptions](#key-simulation-assumptions)
-- [Prerequisites & Lombok Setup](#prerequisites--lombok-setup)
-- [Configuration (`rides_db.xlsx`)](#configuration-rides_dbxlsx)
-- [Running the Simulation](#running-the-simulation)
-- [Outputs and Exports](#outputs-and-exports)
+- [Project Overview](#-project-overview)
+- [Key Simulation Assumptions](#-key-simulation-assumptions)
+- [Prerequisites & Lombok Setup](#-prerequisites--lombok-setup)
+- [Configuration (`rides_db.xlsx`)](#-configuration-rides_dbxlsx)
+- [Running the Simulation](#-running-the-simulation)
+- [Outputs and Exports](#-outputs-and-exports)
 
 ---
 
 ## 🔍 Project Overview
+
 By running the DRL-generated trip plans through this AnyLogic simulator, we can visually verify the routes and independently calculate key metrics. The simulator uses a real road network to measure true travel efficiency, ensuring the DRL agent's theoretical plans translate safely and effectively to the real world without hidden biases.
 
 ---
 
 ## 📝 Key Simulation Assumptions
+
 The simulation engine and its subsequent statistical exports operate under the following strict assumptions:
 
-* **A. Unique Passenger IDs:** A `Passenger_id` will never be repeated with another request.
-* **B. Departure Timing:** `actual_departure_time` is the exact time the vehicle leaves the origin node of a specific ride action.
-* **C. Arrival Timing:** `actual_arrival_time` is the time the vehicle arrives at the target location **plus** the designated `load-unload time`.
-* **D. Action Coordinates:** All rides (Actions `0`, `1`, and `2`) consist of both an origin and a destination. Therefore, the export logs consistently track `origin_lat`, `origin_lon`, `dest_lat`, and `dest_lon`, alongside their respective actual departure and arrival times.
-* **E. Time Spent in Vehicle:** `time_spent_in_vehicle` (in minutes) is calculated as `actual_arrival_time - actual_departure_time`. 
-  * *Note:* Rides labeled as Action `1` (Drop-off) store the total time the passenger spent inside the vehicle. This captures the full duration from when the vehicle starts its journey at the passenger's initial location to the passenger's final destination, inclusive of the load-unload time.
-* **F. Distance Metric:** `vehicle_dist_travelled` is always measured in **kilometers**.
+- **A. Unique Passenger IDs:** A `Passenger_id` will never be repeated with another request.
+- **B. Departure Timing:** `actual_departure_time` is the exact time the vehicle leaves the origin node of a specific ride action.
+- **C. Arrival Timing:** `actual_arrival_time` is the time the vehicle arrives at the target location **plus** the designated `load-unload time`.
+- **D. Action Coordinates:** All rides (Actions `0`, `1`, and `2`) consist of both an origin and a destination. Therefore, the export logs consistently track `origin_lat`, `origin_lon`, `dest_lat`, and `dest_lon`, alongside their respective actual departure and arrival times.
+- **E. Time Spent in Vehicle:** `time_spent_in_vehicle` (in minutes) is calculated as `actual_arrival_time - actual_departure_time`.
+  - *Note:* Rides labeled as Action `1` (Drop-off) store the total time the passenger spent inside the vehicle. This captures the full duration from when the vehicle starts its journey at the passenger's initial location to the passenger's final destination, inclusive of the load-unload time.
+- **F. Distance Metric:** `vehicle_dist_travelled` is always measured in **kilometers**.
 
 ---
 
 ## ⚙️ Prerequisites & Lombok Setup
+
 This model utilizes custom Java classes instead of standard lists/tuples for highly efficient data handling. These classes require the **Lombok** library. **You must configure AnyLogic to use Lombok before running the model.**
 
 ### 1. Configure the AnyLogic Application
+
 1. Download the `lombok.jar` file.
 2. Navigate to the folder where AnyLogic is installed on your computer.
 3. Place the `lombok.jar` file directly into this root program folder.
-4. Locate the AnyLogic configuration file (e.g., `AnyLogic.ini`) in that same folder. 
+4. Locate the AnyLogic configuration file (e.g., `AnyLogic.ini`) in that same folder.
 5. Open the `.ini` file in a text editor (you may need Administrator privileges) and add the following line:
+
    ```text
    -javaagent:lombok.jar
+   ```
+
+6. Save and close the configuration file.
+
+### 2. Verify Model Dependencies
+
+1. Open the `.alp` file in AnyLogic.
+2. In the Projects tree, click on the main `ridesharing_v3` model.
+3. In the Properties panel, go to the **Dependencies** section.
+4. Verify that `lombok.jar` is present in the list. If it is not, click **Add**, select **Browse**, and point it to the `lombok.jar` file you placed in your AnyLogic program folder.
+
+---
+
+## 🗂 Configuration (`rides_db.xlsx`)
+
+Before running a simulation, you must feed the DRL's trip plan into the model using the provided Excel configuration file: `rides_db.xlsx`.
+
+- **General Sheet:** Set the global simulation parameters, including:
+  - Car speed
+  - Load and unload time
+  - Vehicle capacity
+  - Number of passengers
+  - Starting date of the simulation
+- **New Input Sheet:** Paste the tabular trip execution plan generated by the DRL model here. Every row represents a ride or action you want the simulator to execute. *(Note: Rows highlighted in yellow are standard testing placeholders.)*
+
+---
+
+## 🚀 Running the Simulation
+
+1. Ensure `rides_db.xlsx` is saved and closed.
+2. In AnyLogic, click the **Run** button.
+3. You can watch the animation to visually validate the routing behavior.
+4. The simulation will automatically terminate the moment the final passenger arrives at their destination, or the last scheduled ride action is completed.
+
+---
+
+## 📈 Outputs and Exports
+
+Once the simulation terminates, it automatically generates a comprehensive statistical report.
+
+1. Navigate to the `exports` folder within the model's directory.
+2. Open the newly generated Excel file (the filename includes the exact date and timestamp of the run).
+
+The export file contains:
+
+- A snapshot of the configuration data used for that specific run.
+- Unbiased statistics detailing `actual_departure_time`, `actual_arrival_time`, and `time_spent_in_vehicle` for every action.
+
+> **Tip:** To easily trace a specific passenger's journey, sort the data by the `ride_id` column from lowest to highest.
